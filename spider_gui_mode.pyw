@@ -202,10 +202,9 @@ class root_window():
 		if tid.startswith(' '):
 			tid = tid.lstrip()
 			tid_entry.delete(0,tk.END)
-			try:
+			if not tid == '':
 				tid_entry.insert(tid)
-			except:
-				pass
+			
 		if event.keycode == 8 :
 			tid_entry.delete(tid_entry.index(tk.INSERT)-1,tk.INSERT)
 		elif event.keycode in (37,39):
@@ -280,13 +279,21 @@ class process_window():
 		process_bar.pack(anchor='w',side=tk.LEFT)
 		progress_label = ttk.Label(top_frame,text="初始化")
 		progress_label.pack(after=process_bar)
-		log_text = tk.Text(root,height=20,width=60)
+
+		mid_frame = tk.Frame(root)
+		mid_frame.pack()
+		log_text = tk.Text(mid_frame,height=20,width=60)
 		log_text.pack(side=tk.LEFT,fill=tk.Y)
-		log_scrollbar = tk.Scrollbar(root)
+		log_scrollbar = tk.Scrollbar(mid_frame)
 		log_scrollbar.pack(side=tk.LEFT,after=log_text,fill=tk.Y)
 
 		log_scrollbar.config(command=log_text.yview)
 		log_text.config(yscrollcommand=log_scrollbar.set)
+
+		buttom_frame = ttk.Frame(root)
+		buttom_frame.pack(fill=tk.BOTH)
+		ttk.Button(buttom_frame,text="显示更多",command=self.show_more_info).pack()
+
 
 		process_bar.start()
 		root.protocol("WM_DELETE_WINDOW", self.processwindow_on_closing)
@@ -303,6 +310,7 @@ class process_window():
 		threading.Thread(target=self.monitor_loop,daemon=True).start()
 
 		root.mainloop()
+
 
 	def processwindow_on_closing(self):
 		if self.spider.is_alive():
@@ -355,8 +363,42 @@ class process_window():
 				break
 			time.sleep(0.1)
 		self.show_log()
-		self.process_bar.config(value=100)
-		self.progress_label.config(text="完成")
+		if self.spider.status['progress'] == 'fatal':
+			self.process_bar.config(value=0)
+			self.progress_label.config(text="失败")
+		else:
+			self.process_bar.config(value=100)
+			self.progress_label.config(text="完成")
+
+	def show_more_info(self):
+		detail_window(self).show_window()
+
+class detail_window():
+	def __init__(self,father):
+		self.father = father
+	def show_window(self):
+		root = tk.Tk()
+
+		self.detail_text = tk.Text(root,height = 12,width = 45)
+		self.detail_text.pack()
+		root.protocol("WM_DELETE_WINDOW", self.detailwindow_on_closing)
+		self.flag = True
+		threading.Thread(target=self.refresh,daemon=True).start()
+		
+		self.root = root
+		root.mainloop()
+
+	def refresh(self):
+		#self.detail_text.insert(1.0,' ')
+		while self.flag:
+			self.detail_text.delete(1.0,tk.END)
+			detail = "\n".join(":".join(map(str,i)) for i in self.father.spider.status.items())
+			self.detail_text.insert(1.0,detail)
+			time.sleep(0.5)
+
+	def detailwindow_on_closing(self):
+		self.flag = False
+		self.root.destroy()
 
 if __name__ == "__main__":
 	root_window().show_window()
