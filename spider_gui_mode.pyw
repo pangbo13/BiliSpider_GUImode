@@ -49,6 +49,7 @@ class root_window():
 		root.resizable(0,0)
 
 		show_more_choice = tk.IntVar(root,value=0)
+		get_full_info = tk.IntVar(root,value=0)
 		working_path = tk.StringVar(root,value=os.getcwd())
 		output_choice = tk.IntVar(root,value=config.get('output',1))
 		thread_num = tk.IntVar(root,value=config.get('thread_num',2))
@@ -106,6 +107,7 @@ class root_window():
 		# ttk.Label(ad_frame,text='日志模式').grid(row=2,column=0,padx=(0,10))
 		ttk.Label(ad_frame,text='线程数').grid(row=3,column=0)
 		ttk.Label(ad_frame,text='http服务器端口').grid(row=4,column=0,padx=(0,10))
+		ttk.Checkbutton(ad_frame,text='收集完整信息',variable=get_full_info).grid(row=5,rowspan=3,column=0,padx=(0,10))
 		#日志模式单选按钮
 		logmode_description = ('DEBUG','INFO','ERROR')
 		for i in range(3):
@@ -141,6 +143,7 @@ class root_window():
 		self.es_frame = es_frame
 		self.thread_num_label = thread_num_label
 		self.tid_info = tid_info
+		self.get_full_info = get_full_info
 
 		root.mainloop()
 
@@ -258,6 +261,7 @@ class root_window():
 		config['thread_num'] = int(self.thread_num.get())
 		config['http'] = int(self.http_port.get())
 		config['gui_output'] = self.output_choice.get()
+		config['save_full'] = self.get_full_info.get()
 
 		self.root.withdraw() #隐藏主窗口
 		
@@ -268,6 +272,7 @@ class process_window():
 	def __init__(self,config,father):
 		self.config = config
 		self.father = father
+
 	def show_window(self):
 		root = tk.Tk()
 		root.title("bilispider")
@@ -292,8 +297,9 @@ class process_window():
 
 		buttom_frame = ttk.Frame(root)
 		buttom_frame.pack(fill=tk.BOTH)
-		ttk.Button(buttom_frame,text="显示更多",command=self.show_more_info).pack()
-
+		ttk.Button(buttom_frame,text="显示更多",command=self.show_more_info).pack(side=tk.LEFT,padx=(80,0))
+		pause_botton = ttk.Button(buttom_frame,text="暂停",command=self.set_pause)
+		pause_botton.pack(side=tk.RIGHT,padx=(0,80))
 
 		process_bar.start()
 		root.protocol("WM_DELETE_WINDOW", self.processwindow_on_closing)
@@ -306,11 +312,29 @@ class process_window():
 		self.log_text = log_text
 		self.progress_label = progress_label
 		self.spider = spider
+		self.pause_botton = pause_botton
 
 		threading.Thread(target=self.monitor_loop,daemon=True).start()
 
 		root.mainloop()
 
+	def set_pause(self,multi=False):
+		if multi:
+			self.pause_botton.config(state=tk.DISABLED)
+			self.root.update()
+			self.spider.set_pause(1)
+			self.pause_botton.config(text='继续',command=self.set_continue)
+			self.pause_botton.config(state=tk.NORMAL)
+		else:
+			threading.Thread(target=self.set_pause,args=(True,),name="set_pause").start()
+			
+
+	def set_continue(self):
+		self.pause_botton.config(state=tk.DISABLED)
+		self.root.update()
+		self.spider.set_pause(0)
+		self.pause_botton.config(text='暂停',command=self.set_pause)
+		self.pause_botton.config(state=tk.NORMAL)
 
 	def processwindow_on_closing(self):
 		if self.spider.is_alive():
@@ -379,7 +403,7 @@ class detail_window():
 	def show_window(self):
 		root = tk.Tk()
 
-		self.detail_text = tk.Text(root,height = 12,width = 45)
+		self.detail_text = tk.Text(root,height = 13,width = 45)
 		self.detail_text.pack()
 		root.protocol("WM_DELETE_WINDOW", self.detailwindow_on_closing)
 		self.flag = True
