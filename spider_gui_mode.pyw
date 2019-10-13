@@ -1,8 +1,10 @@
 # -*- coding: UTF-8 -*-
 from bilispider import spider
 import os
+import sys
 import time
 import queue
+import requests
 import threading
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -48,12 +50,13 @@ class root_window():
 		root.title('设置')
 		root.resizable(0,0)
 
-		show_more_choice = tk.IntVar(root,value=0)
-		get_full_info = tk.IntVar(root,value=0)
+		show_more_choice = tk.BooleanVar(root,value=0)
+		get_full_info = tk.BooleanVar(root,value=0)
 		working_path = tk.StringVar(root,value=os.getcwd())
 		output_choice = tk.IntVar(root,value=config.get('output',1))
 		thread_num = tk.IntVar(root,value=config.get('thread_num',2))
 		http_port = tk.IntVar(root,value=config.get('http',1214))
+		disable_http = tk.BooleanVar(root,value=0)
 
 
 		#显示基本选项
@@ -104,10 +107,8 @@ class root_window():
 		ttk.Separator(ad_frame,orient=tk.HORIZONTAL).grid(row=0,column=0,columnspan=4,sticky="we",pady=8,padx=0)
 		#添加标签控件
 		ttk.Label(ad_frame,text='输出级别').grid(row=1,column=0,padx=(0,10))
-		# ttk.Label(ad_frame,text='日志模式').grid(row=2,column=0,padx=(0,10))
 		ttk.Label(ad_frame,text='线程数').grid(row=3,column=0)
 		ttk.Label(ad_frame,text='http服务器端口').grid(row=4,column=0,padx=(0,10))
-		ttk.Checkbutton(ad_frame,text='收集完整信息',variable=get_full_info).grid(row=5,rowspan=3,column=0,padx=(0,10))
 		#日志模式单选按钮
 		logmode_description = ('DEBUG','INFO','ERROR')
 		for i in range(3):
@@ -118,8 +119,12 @@ class root_window():
 		thread_num_label = tk.Label(ad_frame,text='2')
 		thread_num_label.grid(row=3,column=3)
 		#添加端口输入框
-		ttk.Scale(ad_frame, from_=0, to=2000,length=150,variable=http_port,command=self.set_port).grid(row=4,column=1,columnspan=2)
+		http_scale = ttk.Scale(ad_frame, from_=1, to=2000,length=150,variable=http_port,command=self.set_port)
+		http_scale.grid(row=4,column=1,columnspan=2)
 		ttk.Entry(ad_frame,textvariable=http_port,width=6).grid(row=4,column=3)
+		#添加复选框
+		ttk.Checkbutton(ad_frame,text='收集完整信息',variable=get_full_info).grid(row=5,rowspan=3,column=0,padx=(0,10))
+		ttk.Checkbutton(ad_frame,text='禁用http',variable=disable_http,command=self.http_switch).grid(row=5,rowspan=2,column=1)
 		#高级选项结束
 		
 
@@ -128,6 +133,8 @@ class root_window():
 		ttk.Button(buttom_frame,text='退出',width=8,command=exit).pack(side=tk.RIGHT,fill=tk.X,padx=(10,20))
 		ttk.Button(buttom_frame,text='开始',width=8,command=self.on_start).pack(side=tk.RIGHT,fill=tk.X,padx=(60,20))
 		buttom_frame.pack(pady=(7,5))
+
+		tid_entry.focus_set()
 
 		self.root = root
 		self.config = config
@@ -144,6 +151,10 @@ class root_window():
 		self.thread_num_label = thread_num_label
 		self.tid_info = tid_info
 		self.get_full_info = get_full_info
+		self.http_scale = http_scale
+		self.disable_http = disable_http
+
+		#self.http_port.config(state=tk.DISABLED)
 
 		root.mainloop()
 
@@ -170,6 +181,15 @@ class root_window():
 			self.ad_frame.pack(after=self.es_frame)
 		else:
 			self.ad_frame.forget()
+
+	def http_switch(self):
+		if self.disable_http.get():
+			self.http_scale.config(state=tk.DISABLED)
+			self.his_http = self.http_port.get()
+			self.http_port.set(0)
+		else:
+			self.http_scale.config(state=tk.NORMAL)
+			self.http_port.set(getattr(self,'his_http',1214))
 
 	def show_thread_num(self,pos):
 		self.thread_num_label.config(text=str(self.thread_num.get()))
@@ -256,7 +276,7 @@ class root_window():
 		except:
 			tkmsgbox.showwarning("警告","分区id无效")
 			return
-		#config['output'] = int(output_choice.get())
+
 		config['output'] = 0
 		config['thread_num'] = int(self.thread_num.get())
 		config['http'] = int(self.http_port.get())
@@ -339,12 +359,23 @@ class process_window():
 	def processwindow_on_closing(self):
 		if self.spider.is_alive():
 			if tkmsgbox.askokcancel("确认退出", "爬虫正在运行，若强制退出可能损失部分数据"):
+				# if self.spider.get_http_thread():
+				# 	try:
+				# 		requests.get('http://localhost:1214/exit',timeout=0.1)
+				# 	except:
+				# 		pass
 				self.father.root.destroy()
 				self.root.destroy()
+				sys.exit()
 		else:
+			# if self.spider.get_http_thread():
+			# 		try:
+			# 			requests.get('http://localhost:1214/exit',timeout=0.1)
+			# 		except:
+			# 			pass
 			self.father.root.destroy()
 			self.root.destroy()
-			exit()
+			sys.exit()
 
 	def show_log(self):
 		log_text = self.log_text
