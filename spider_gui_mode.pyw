@@ -124,7 +124,7 @@ class root_window():
 		ttk.Entry(ad_frame,textvariable=http_port,width=6).grid(row=4,column=3)
 		#添加复选框
 		ttk.Checkbutton(ad_frame,text='收集完整信息',variable=get_full_info).grid(row=5,rowspan=3,column=0,padx=(0,10))
-		ttk.Checkbutton(ad_frame,text='禁用http',variable=disable_http,command=self.http_switch).grid(row=5,rowspan=2,column=1)
+		ttk.Checkbutton(ad_frame,text='禁用监视',variable=disable_http,command=self.http_switch).grid(row=5,rowspan=2,column=1)
 		#高级选项结束
 		
 
