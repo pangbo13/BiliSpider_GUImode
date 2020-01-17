@@ -130,7 +130,7 @@ class root_window():
 
 		buttom_frame = tk.Frame(root)
 		ttk.Checkbutton(buttom_frame,text='展开高级选项',width=12,command=self.show_more_or_less,variable=show_more_choice).pack(side=tk.RIGHT,fill=tk.X,padx=(10,20))
-		ttk.Button(buttom_frame,text='退出',width=8,command=exit).pack(side=tk.RIGHT,fill=tk.X,padx=(10,20))
+		ttk.Button(buttom_frame,text='退出',width=8,command=sys.exit).pack(side=tk.RIGHT,fill=tk.X,padx=(10,20))
 		ttk.Button(buttom_frame,text='开始',width=8,command=self.on_start).pack(side=tk.RIGHT,fill=tk.X,padx=(60,20))
 		buttom_frame.pack(pady=(7,5))
 
